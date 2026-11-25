@@ -355,7 +355,11 @@ function App() {
                   ? "Backend not ready"
                   : "Connecting"}
             </span>
-            <button className="settings-button" onClick={openSettings}>
+            <button
+              className="settings-button"
+              aria-label="Session settings"
+              onClick={openSettings}
+            >
               <SlidersHorizontal size={15} />
               <span>Session settings</span>
             </button>

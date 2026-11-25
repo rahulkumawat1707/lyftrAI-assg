@@ -963,6 +963,7 @@ footer b {
     display: block;
     position: fixed;
     inset: 0;
+    left: 220px;
     z-index: 4;
     background: #20321b55;
     border: 0;
