@@ -1,173 +1,235 @@
 # Lyftr Chat
 
-React chat with a FastAPI backend, LiteLLM key failover and in-memory response caching, and SQLite session history.
+A conversational AI workspace built with **React, FastAPI, SQLite, and LiteLLM**. Chat across multiple turns, inspect each reply's inference metadata, and demonstrate caching and automatic API-key failover.
 
 ## 1. Live URLs
 
-Public source repository: [rahulkumawat1707/lyftrAI-assg](https://github.com/rahulkumawat1707/lyftrAI-assg).
+| Resource                   | Link                                                                                                         |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Frontend · Vercel          | [lyftr-ai-assg.vercel.app](https://lyftr-ai-assg.vercel.app)                                                 |
+| Backend API base · Railway | [lyftr-backend-production-f9237d5b.up.railway.app](https://lyftr-backend-production-f9237d5b.up.railway.app) |
+| Backend health             | [GET /health](https://lyftr-backend-production-f9237d5b.up.railway.app/health)                               |
+| Public source              | [rahulkumawat1707/lyftrAI-assg](https://github.com/rahulkumawat1707/lyftrAI-assg)                            |
 
-Public frontend: [https://lyftr-ai-assg.vercel.app](https://lyftr-ai-assg.vercel.app).
+Open the frontend to start a conversation. Each page load creates a new session; **New conversation** starts another without reloading. **Session settings** contains an optional system prompt, failure-simulation controls, and a saved-history reload button.
 
-Public backend API base URL: [https://lyftr-backend-production-f9237d5b.up.railway.app](https://lyftr-backend-production-f9237d5b.up.railway.app).
-
-Backend health: [GET /health](https://lyftr-backend-production-f9237d5b.up.railway.app/health).
-
-Use the public frontend and backend base URLs above in your assignment submission, together with your demo recording URL. Local addresses below are for development and do not replace public deployment URLs.
-
-Local frontend: http://127.0.0.1:3000
-
-Local backend health: http://127.0.0.1:8000/health
-
-If `localhost` times out on your machine, use the numeric `127.0.0.1` URLs above.
+The hosted app runs independently of your laptop. Railway's free allowance and idle sleep can affect availability; the first request after sleeping may take longer. Local development links below are only accessible on the computer running the services.
 
 ## 2. Run locally: with Docker and without
 
-Copy `.env.example` to `.env` and set two distinct real API keys and an available LiteLLM model name. Never commit `.env`. If `.env` already contains your keys, keep that file instead of overwriting it.
+### Get the source and configure it
 
-### Docker
+```sh
+git clone https://github.com/rahulkumawat1707/lyftrAI-assg.git
+cd lyftrAI-assg
+```
 
-Install Docker and Make, then run:
+Copy `.env.example` to `.env` using your editor, then replace the key and model placeholders. Keep an existing `.env` if it already contains your configuration. Provide at least two distinct real keys and a model your provider account supports. For Gemini, the hosted configuration uses `gemini/gemini-3.5-flash-lite`.
+
+### With Docker
+
+Prerequisites: Docker with Compose, plus Make if using the Makefile.
 
 ```sh
 make up
+make down
 ```
 
-Frontend: http://localhost:3000; backend: http://localhost:8000. `make down` stops both services while preserving the named `sqlite_data` volume mounted at `/data`. Both images use multi-stage builds. Without Make, use `docker compose up --build -d` and `docker compose down`.
+Equivalent commands without Make:
 
-### Without Docker (Windows PowerShell)
+```sh
+docker compose up --build -d
+docker compose down
+```
+
+| Local service  | Address                      |
+| -------------- | ---------------------------- |
+| React frontend | http://localhost:3000        |
+| FastAPI health | http://localhost:8000/health |
+
+Both services use multi-stage Dockerfiles. The named `sqlite_data` volume is mounted at `/data`; the database is `/data/app.db`. Stopping the stack with `make down` preserves that volume. Removing the volume deletes its stored history.
+
+### Without Docker
+
+Prerequisites: Python 3.12 and Node.js 22 with npm. Run from the repository root.
+
+**Windows PowerShell:**
 
 ```powershell
-git clone https://github.com/rahulkumawat1707/lyftrAI-assg.git
-cd lyftrAI-assg
 python -m venv .venv
 .\.venv\Scripts\python -m pip install -r backend/requirements-dev.txt
 npm.cmd ci --prefix frontend
 .\scripts\start-local.ps1
 ```
 
-The restart script launches hidden background servers that outlive the terminal command. If ports are already in use, it leaves existing processes running. Logs are in `tmp/`. To stop an owned server, stop its process ID shown in `Get-NetTCPConnection -LocalPort 3000,8000`.
+The start script runs both servers in the background and writes logs to `tmp/`. It leaves existing servers untouched if a required port is already occupied. Open http://127.0.0.1:3000; backend health is http://127.0.0.1:8000/health.
 
-Alternatively run each server in its own terminal from the repository root:
+For foreground logs, run these commands in two separate terminals:
 
 ```powershell
 .\.venv\Scripts\python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
 npm.cmd run dev --prefix frontend -- --host 127.0.0.1
 ```
 
-If you already have the project open, skip the clone and directory-change commands. Configure `.env` before starting the servers.
+**macOS / Linux:**
 
-The frontend reads `VITE_API_BASE_URL` from the root `.env` at build/start time. Restart Vite after changing it. Backend environment changes also require a restart. Set `ALLOWED_ORIGINS` to include every frontend origin you use, including `http://127.0.0.1:3000` when using the numeric address.
-
-### Configuration
-
-| Variable | Purpose |
-| --- | --- |
-| `LLM_API_KEYS` | Comma-separated provider keys, at least two; assigned IDs `key_1`, `key_2`, etc. |
-| `LLM_MODEL` | LiteLLM model identifier supported by your provider account |
-| `DATABASE_URL` | SQLite URL; use `sqlite:////data/app.db` inside Docker |
-| `ALLOWED_ORIGINS` | Comma-separated frontend origins permitted by CORS |
-| `ENABLE_FAILURE_SIMULATION` | Set `true` to enable the request-scoped failover test header |
-| `DEFAULT_SYSTEM_PROMPT` | Default assistant instructions when no session override is supplied |
-| `LLM_TIMEOUT_SECONDS` | Timeout for a provider attempt |
-| `CACHE_TTL_SECONDS` | Lifetime of a cached response in seconds |
-| `VITE_API_BASE_URL` | Backend base URL embedded in the React build; contains no API keys |
-
-The backend container also honors the host-provided `PORT`, defaulting to `8000`.
-
-### Publish to GitHub
-
-To publish further changes to the existing repository, run from the project root:
-
-```powershell
-git add README.md
-git commit -m "Update project documentation"
-git push origin main
+```sh
+python3 -m venv .venv
+.venv/bin/python -m pip install -r backend/requirements-dev.txt
+npm ci --prefix frontend
 ```
 
-Stage other intended source files explicitly when publishing code changes. Git Credential Manager may open your browser to sign in. `.gitignore` excludes API keys in `.env`, the local database, dependencies, and generated output.
+Then, in separate terminals:
 
-### Public deployment
+```sh
+.venv/bin/python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
+npm run dev --prefix frontend -- --host 127.0.0.1
+```
 
-Deploy `backend/Dockerfile` to a Python/container host with backend root directory `backend`. Attach a persistent disk at `/data`, set `DATABASE_URL=sqlite:////data/app.db`, and set every backend environment variable from `.env.example`. Use one backend worker because session locks and LiteLLM's cache are process-local. Set the health path to `/health` and enable failure simulation. Set `ALLOWED_ORIGINS` to the public frontend origin.
+### Environment variables
 
-Deploy the frontend as a static site with root directory `frontend`, build command `npm ci && npm run build`, and publish directory `dist`. Set `VITE_API_BASE_URL` to the public HTTPS backend URL **before building**. It is embedded into the frontend bundle; API keys must never use a `VITE_` prefix. Configure the host to serve `index.html` for frontend routes.
+| Variable                    | Purpose                                                                           |
+| --------------------------- | --------------------------------------------------------------------------------- |
+| `LLM_API_KEYS`              | Comma-separated provider keys, assigned `key_1`, `key_2`, etc. in order           |
+| `LLM_MODEL`                 | Provider-supported LiteLLM model identifier                                       |
+| `DATABASE_URL`              | SQLite location; local `sqlite:///./data/app.db`, Docker `sqlite:////data/app.db` |
+| `ALLOWED_ORIGINS`           | Comma-separated frontend origins permitted by CORS                                |
+| `ENABLE_FAILURE_SIMULATION` | `true` enables the request-scoped failure test header                             |
+| `DEFAULT_SYSTEM_PROMPT`     | Assistant instructions used when the session has no override                      |
+| `LLM_TIMEOUT_SECONDS`       | Timeout for each provider attempt; example: `25`                                  |
+| `CACHE_TTL_SECONDS`         | Response-cache lifetime; example: `3600`                                          |
+| `VITE_API_BASE_URL`         | Public backend base URL embedded in the React build                               |
+| `PORT`                      | Container listening port; default: `8000`                                         |
 
-Use a host with persistent disk support: an ephemeral filesystem does not preserve SQLite history across container replacement. Review hosting account requirements, storage allowances, and costs before provisioning.
+The frontend reads the root `.env` at startup/build time. Restart local processes after configuration changes; redeploy the frontend after changing its backend URL. Include both `http://localhost:3000` and `http://127.0.0.1:3000` in local CORS origins if you use both addresses.
 
-### Vercel frontend settings
+Keep real keys in `.env` or backend hosting secrets. Never use a `VITE_` prefix for a secret: those variables are included in the browser bundle. `.gitignore` excludes `.env`, local databases, dependencies, and generated output.
 
-Import `rahulkumawat1707/lyftrAI-assg` into Vercel with **Root Directory `frontend`** and **Framework Preset Vite**. The included `frontend/vercel.json` sets `npm ci`, `npm run build`, output directory `dist`, and the SPA fallback.
+### Hosting configuration
 
-Set `VITE_API_BASE_URL` to your public HTTPS FastAPI backend base URL when it is available, then redeploy. Do not enter API keys in the frontend environment. A production build without a backend URL still renders the interface and displays a readable message when chat is attempted. It does not connect to a visitor's localhost.
-
-Use the project's public production domain for the submission frontend URL. Verify it opens without signing in. Add that exact origin to the backend's `ALLOWED_ORIGINS` before testing chat from Vercel.
+- **Vercel:** root directory `frontend`, framework Vite, install `npm ci`, build `npm run build`, output `dist`. `frontend/vercel.json` includes the SPA fallback. Set production `VITE_API_BASE_URL` to the Railway HTTPS base URL.
+- **Railway:** root directory `/backend`, Dockerfile builder, one instance, port `8000`, health check `/health`, and a persistent volume mounted at `/data`. Set `DATABASE_URL=sqlite:////data/app.db` and `ALLOWED_ORIGINS=https://lyftr-ai-assg.vercel.app`.
+- Both projects follow the repository's `main` branch. Deploy configuration and credentials belong in the hosting settings, not the source tree. See [Railway deployment details](docs/deploy-railway.md).
 
 ## 3. Design decisions: key fallback, caching, SQLite session storage
 
-- Each key becomes an ordered LiteLLM Router deployment named `key_1`, `key_2`, etc. Router performs fallback with no same-key retries. A request-scoped router avoids simulation/cooldown state leaking to subsequent requests. The public metadata includes only key IDs, never secrets.
-- LiteLLM's built-in local Cache stores the reply and original usage under model + the complete ordered messages, including system prompt and history. Session IDs do not affect cache identity. Cache hits return identical reply/usage, null key ID, and zero fallback attempts. The cache lasts until its TTL or process restart; SQLite history persists independently.
-- SQLite creates its own schema and uses WAL. Both messages and the session system prompt are committed together only after successful inference. Validation and provider failures leave history unchanged.
-- Per-session locks serialize simultaneous requests in one backend worker. Different sessions can run concurrently. Deploy exactly one backend worker/instance with the SQLite volume.
-- The client sends only the new message. A new session begins on each page load; optional new-conversation controls retain earlier conversations only during that page visit. Session IDs are random UUIDs, not authentication credentials. This assignment implementation does not provide account-based access control.
-- Exact API routes: `GET /health`, `POST /chat`, `GET /sessions/{session_id}/messages`. Errors have a JSON `detail` field. Health checks database access and key configuration; it does not spend tokens to validate credentials.
+```mermaid
+flowchart LR
+    UI[React · Vercel] --> API[FastAPI · Railway]
+    API --> DB[(SQLite · /data/app.db)]
+    API --> Cache[LiteLLM local cache]
+    Cache -->|cache miss| Router[LiteLLM Router]
+    Router --> K1[Key 1 · Gemini]
+    Router -->|fallback| K2[Key 2 · Gemini]
+```
+
+**Key fallback.** Each configured key becomes an ordered LiteLLM deployment named `key_1`, `key_2`, and so on. Router tries the next key when an attempt fails, without retrying the same key. A request-scoped router keeps test failures and cooldown state from leaking into later requests. Metadata exposes key IDs, never credentials. If all providers fail, the API returns the specified JSON 503.
+
+**Caching.** LiteLLM's built-in in-memory cache uses the model plus the full ordered message list: system prompt, stored history, and new message. Session IDs are excluded, so identical first messages in separate sessions can share a cache entry. A hit returns the stored reply and usage with `LLM_CACHE`, `key_id: null`, and zero fallback attempts. A different prompt or context produces a different entry. Cache entries expire at their TTL and are cleared on process restart.
+
+**SQLite sessions.** Startup creates the schema and index automatically. Messages include session ID, role, content, optional assistant metadata as JSON, and a server-generated ISO-8601 timestamp. A successful user/assistant pair and session instructions are committed in one transaction. Invalid and unavailable-provider requests do not change stored history. Connections close after each transaction, and the mounted database survives container restarts.
+
+**Conversation ordering.** Per-session locks serialize concurrent turns within one backend process. Different sessions can proceed independently. Use one backend worker/instance because locks and cache are process-local. The client sends only the new message; the server reconstructs the complete context from SQLite.
+
+**Tokens and latency.** Input tokens count the current full prompt, including history; output tokens count only the new reply. Values come from provider usage, not estimates or accumulated conversation totals. Latency is server-measured integer milliseconds. Cache hits preserve original usage while reporting their own request latency.
+
+Session UUIDs separate conversations but do not provide account authentication. The assignment API has no user-account access control; use test conversations rather than sensitive personal information.
 
 ## 4. Verification: how to see failover, cache hits and per-message token usage
 
-Run the backend test suite from the root:
+### Automated checks
+
+From the repository root on Windows:
 
 ```powershell
 cd backend
 ..\.venv\Scripts\python -m pytest -q
-```
-
-The contract tests exercise the actual LiteLLM Router and Cache with mocked provider responses; they do not establish that real provider credentials work. `scripts/check_provider.py` tests real keys separately and prints redacted provider diagnostics. Real inference verification uses your provider quota.
-
-```powershell
-.\.venv\Scripts\python scripts/check_provider.py
+cd ..
 npm.cmd run build --prefix frontend
 ```
 
-Run these commands from the repository root. Check that your selected model is available to your account.
+On macOS/Linux, use `../.venv/bin/python` from `backend` and `npm` in place of `npm.cmd`. Tests exercise the real LiteLLM Router and Cache with mocked provider responses. The production build checks the React bundle; it does not establish provider availability.
 
-For manual checks, use a fresh unique message for each failure test so a prior cache hit does not bypass inference. With `ENABLE_FAILURE_SIMULATION=true`, `X-Simulate-Failure: key_1=429` and `key_1=500` must return key_2 with one fallback. `*=429` must return 503 with `{"detail":"all providers unavailable"}` and add no history. Simulations are request-local. Supported statuses are 429, 500, 502, 503; 5xx simulations use LiteLLM's built-in internal-server-error mock.
+To check real keys locally:
 
-Send the same first question in two new sessions: the second should say `LLM_CACHE`, retain the same reply and token usage, and be faster. A different question or system prompt must miss. Ask a follow-up to verify history is included. Inspect the history endpoint to confirm oldest-first user/assistant pairs and no system messages. Input tokens count this request's full prompt; output tokens count only this reply. Neither value is a running total.
-
-The UI supplies all required `data-testid` hooks and shows source, model, latency, input/output tokens, successful key ID and fallback attempts next to each assistant message. Its settings include optional system prompts, failure-test controls, and history reload.
-
-### Endpoint checks
-
-```sh
-curl http://localhost:8000/health
-curl -X POST http://localhost:8000/chat -H "Content-Type: application/json" -d '{"session_id":"demo-one","message":"What is the capital of France?"}'
-curl http://localhost:8000/sessions/demo-one/messages
-curl -X POST http://localhost:8000/chat -H "Content-Type: application/json" -H "X-Simulate-Failure: key_1=429" -d '{"session_id":"demo-fallback","message":"Explain Python in one sentence. Reference demo-fallback."}'
+```powershell
+.\.venv\Scripts\python scripts/check_provider.py
 ```
 
-These examples use a POSIX shell. In PowerShell, use `Invoke-RestMethod` or `curl.exe` with the appropriate JSON quoting. For deployment verification, replace the local backend address with the public backend base URL.
+To verify the public API, CORS, cache, fallback, validation, and history:
 
-The `POST /chat` body accepts `session_id` (1–128 characters), `message` (1–4000 characters after trimming), and optional `system_prompt`. A successful response contains `session_id`, non-empty `reply`, and `metadata`: `resolution_source`, `model`, `latency_ms`, `input_tokens`, `output_tokens`, `key_id`, and `fallback_attempts`. Invalid input or malformed JSON returns 422; an unknown history session returns 404; provider exhaustion returns 503. Errors contain `detail`.
+```powershell
+.\.venv\Scripts\python scripts/verify_live.py --backend https://lyftr-backend-production-f9237d5b.up.railway.app --frontend https://lyftr-ai-assg.vercel.app
+```
 
-Use `scripts/verify_live.py --backend YOUR_BACKEND_URL --frontend YOUR_FRONTEND_URL` with the virtual-environment Python interpreter to run live acceptance checks. After saving a successful conversation, restart the backend and fetch its history again to verify persistence independently of the in-memory cache.
+These checks make real model requests and consume provider quota. Verify persistence separately: save a conversation, restart the hosted backend, then fetch the same session's history.
+
+### API contract
+
+| Endpoint                              | Behavior                                                                                             |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `GET /health`                         | Database/configuration readiness: `status`, `keys_configured`, `cache_enabled`                       |
+| `POST /chat`                          | Accepts `session_id`, `message`, optional `system_prompt`; returns `session_id`, `reply`, `metadata` |
+| `GET /sessions/{session_id}/messages` | Stored messages, oldest first, without the system prompt                                             |
+
+`session_id` is required, 1–128 characters. `message` is required, 1–4000 characters after trimming. Each successful reply includes `resolution_source`, `model`, `latency_ms`, `input_tokens`, `output_tokens`, `key_id`, and `fallback_attempts`.
+
+| Error                            | HTTP status                                   |
+| -------------------------------- | --------------------------------------------- |
+| Invalid fields or malformed JSON | 422                                           |
+| Unknown history session          | 404, `{"detail":"session not found"}`         |
+| Every provider unavailable       | 503, `{"detail":"all providers unavailable"}` |
+
+### See a cache hit
+
+1. Start a new conversation and send a unique question. Inspect `LIVE_INFERENCE` and its metadata.
+2. Start another conversation and send exactly the same question with the same system instructions.
+3. Inspect `LLM_CACHE`: identical reply and token usage, null key ID, zero fallback attempts, and lower latency.
+4. Change the question or system prompt to check that the cache distinguishes the request.
+
+### Demonstrate failover
+
+Enable `ENABLE_FAILURE_SIMULATION=true` on the backend. Use a fresh prompt for each test so an existing cache entry does not bypass inference. Select a failure mode in **Session settings**, or set the request header directly:
+
+| `X-Simulate-Failure`  | Expected result with two keys         |
+| --------------------- | ------------------------------------- |
+| `key_1=429`           | Real reply from `key_2`, one fallback |
+| `key_1=500`           | Real reply from `key_2`, one fallback |
+| `key_1=429,key_2=500` | JSON 503; history unchanged           |
+| `*=429`               | JSON 503; history unchanged           |
+
+The header also accepts 502 and 503; the current 5xx test path uses LiteLLM's generic internal-server-error mock. Simulations apply only to that request. In the UI, the selected mode stays enabled for subsequent requests until reset to **Normal operation**.
+
+### Manual PowerShell example
+
+```powershell
+$baseUrl = 'https://lyftr-backend-production-f9237d5b.up.railway.app'
+$sessionId = [guid]::NewGuid().ToString()
+$body = @{ session_id = $sessionId; message = 'What is the capital of France?' } | ConvertTo-Json
+Invoke-RestMethod "$baseUrl/health"
+Invoke-RestMethod "$baseUrl/chat" -Method Post -ContentType 'application/json' -Body $body
+Invoke-RestMethod "$baseUrl/sessions/$sessionId/messages"
+```
+
+Each assistant message displays source, model, latency, input/output tokens, key ID, and fallback count. Required `data-testid` hooks are preserved: `chat-input`, `send-button`, `assistant-message`, `meta-source`, `meta-model`, `meta-latency`, `meta-input-tokens`, `meta-output-tokens`, and optional `system-prompt-input`.
 
 ## 5. Setup Used: your editor and AI tools
 
-Editor: **Visual Studio Code**. AI coding assistant: **OpenAI Codex**, used for implementation, documentation, dependency setup, and contract testing. The assignment PDF was extracted and rendered locally for review. Provider calls use LiteLLM; simulated failures affect the selected keys while successful fallback replies still come from a real provider.
+- **Editor:** Visual Studio Code.
+- **AI coding assistant:** OpenAI Codex, used for implementation, documentation, dependency setup, testing, and deployment assistance.
+- **Frontend tooling:** React, Vite, Lucide icons, React Markdown, and remark-gfm.
+- **Backend tooling:** Python, FastAPI, Uvicorn, LiteLLM, sqlite3, pytest, and HTTPX.
+- **Hosting:** Vercel for the static frontend; Railway for FastAPI and its mounted SQLite volume.
 
 ## 6. Bonus features (if any): what you added beyond the requirements and why
 
-- Markdown replies with code blocks and tables, plus copy controls for readability.
-- Session settings and conversation switching for trying distinct contexts.
-- Visible backend connectivity and resilience controls to make debugging/demo steps repeatable.
-- A Windows background start script to keep the local preview available between terminal sessions.
+- **System prompts and conversation switching:** compare different instructions and contexts without reloading the page.
+- **Markdown, tables, code blocks, and copy controls:** make generated answers easier to read and reuse.
+- **Resilience controls and health indicator:** demonstrate fallback and inspect backend connectivity directly from the interface.
+- **Saved-history reload:** inspect SQLite-backed session messages from the chat settings.
+- **Responsive navigation and keyboard support:** keep the chat usable on smaller screens, with Enter to send, Shift+Enter for a new line, and Escape to close settings.
+- **Windows background start script:** launch both local services with a single command and retain their logs.
 
-### Assignment submission checklist
+### Submission reference
 
-Submit the following through the assignment's Submission Form within **24 hours of receiving the assignment**:
-
-- **Public frontend URL:** the React application must be accessible without login and connected to the deployed backend.
-- **Public backend base URL:** the running FastAPI service must expose `GET /health`, `POST /chat`, and `GET /sessions/{session_id}/messages`, with CORS allowing the frontend origin.
-- **Public GitHub repository URL:** include `/backend`, `/frontend`, `docker-compose.yml`, `Makefile` with `up` and `down`, `.env.example` containing placeholders, this README, backend tests, and multi-stage Dockerfiles for both services. Never submit real keys in source.
-- **A 2–3 minute screen recording with your own voice:** show the deployed app, multi-turn conversation, all three endpoints, the per-request metadata, a cache hit, and key failover using `X-Simulate-Failure`. Make the video link accessible without login. See [the recording outline](docs/demo-script.md).
-
-Both deployed tiers must be connected and testable. Localhost addresses and the GitHub source URL do not replace the mandatory live frontend/backend URLs. SQLite must live on a persistent volume, and failure simulation must be enabled on the deployed backend.
+The assignment requests public frontend and backend URLs, the public GitHub repository, and a **2–3 minute screen recording with your own voice**, submitted through its form within 24 hours of receipt. The video should show the deployed application, all three endpoints, a cache hit, failover using `X-Simulate-Failure`, and per-request metadata. See [the demo outline](docs/demo-script.md) for a recording sequence.

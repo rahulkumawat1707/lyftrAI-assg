@@ -1,37 +1,37 @@
 # Railway backend deployment
 
-Use the Free plan or its no-card introductory trial. Do not upgrade to a paid plan for this setup. Verify the account's current allowance and volume eligibility before creating resources. Railway's Free plan documentation lists $1/month of usage, idle sleeping, and one 0.5 GB persistent volume; exhausting the allowance stops services until the next cycle.
+Use the Free plan or its no-card introductory trial. Do not upgrade to a paid plan for this setup. Verify the account's current allowance and volume eligibility before creating resources. Railway's Free plan documentation lists $1/month of usage, idle sleeping, and one persistent volume capped at 500 MB; exhausting the allowance stops services until the next cycle.
 
 ## Service settings
 
-| Setting | Value |
-| --- | --- |
-| Source | `rahulkumawat1707/lyftrAI-assg` |
-| Branch | `main` |
-| Root directory | `/backend` |
-| Builder | Dockerfile |
-| Dockerfile | `Dockerfile` within the backend root |
-| Instances | 1 |
-| Public HTTP target port | 8000 |
-| Health check | `/health` |
-| Persistent volume mount | `/data` |
+| Setting                 | Value                                |
+| ----------------------- | ------------------------------------ |
+| Source                  | `rahulkumawat1707/lyftrAI-assg`      |
+| Branch                  | `main`                               |
+| Root directory          | `/backend`                           |
+| Builder                 | Dockerfile                           |
+| Dockerfile              | `Dockerfile` within the backend root |
+| Instances               | 1                                    |
+| Public HTTP target port | 8000                                 |
+| Health check            | `/health`                            |
+| Persistent volume mount | `/data`                              |
 
 Use the Dockerfile's default start command. Do not add Postgres or Redis: history must stay in SQLite. Configure build settings in the service dashboard/API rather than adding deprecated `railway.toml` or `railway.json` files.
 
 ## Runtime variables
 
-| Variable | Value |
-| --- | --- |
-| `LLM_API_KEYS` | Two real provider keys, comma-separated; enter using secret settings |
-| `LLM_MODEL` | A LiteLLM identifier verified with both keys |
-| `DATABASE_URL` | `sqlite:////data/app.db` |
-| `ALLOWED_ORIGINS` | `https://lyftr-ai-assg.vercel.app` |
-| `ENABLE_FAILURE_SIMULATION` | `true` |
-| `DEFAULT_SYSTEM_PROMPT` | `You are a helpful, clear and concise assistant.` |
-| `LLM_TIMEOUT_SECONDS` | `25` |
-| `CACHE_TTL_SECONDS` | `3600` |
-| `PORT` | `8000` |
-| `RAILWAY_RUN_UID` | `0` (Railway documents this for non-root images using root-owned mounted volumes) |
+| Variable                    | Value                                                                             |
+| --------------------------- | --------------------------------------------------------------------------------- |
+| `LLM_API_KEYS`              | Two real provider keys, comma-separated; enter using secret settings              |
+| `LLM_MODEL`                 | `gemini/gemini-3.5-flash-lite`, or another model verified with both keys          |
+| `DATABASE_URL`              | `sqlite:////data/app.db`                                                          |
+| `ALLOWED_ORIGINS`           | `https://lyftr-ai-assg.vercel.app`                                                |
+| `ENABLE_FAILURE_SIMULATION` | `true`                                                                            |
+| `DEFAULT_SYSTEM_PROMPT`     | `You are a helpful, clear and concise assistant.`                                 |
+| `LLM_TIMEOUT_SECONDS`       | `25`                                                                              |
+| `CACHE_TTL_SECONDS`         | `3600`                                                                            |
+| `PORT`                      | `8000`                                                                            |
+| `RAILWAY_RUN_UID`           | `0` (Railway documents this for non-root images using root-owned mounted volumes) |
 
 Do not copy real keys into this file, the repository, frontend variables, build arguments, or logs.
 

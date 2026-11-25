@@ -1,6 +1,6 @@
-# Free deployment preparation
+# Alternative hosting reference
 
-Target: Northflank Sandbox for the FastAPI backend and separate static hosting for React. Do not select a paid plan or add payment information for this deployment. The Sandbox advertises up to $20/month of resources with no card; verify your account's actual limits and estimated usage before creation. Volume eligibility still needs to be verified in the account. If a persistent volume requires upgrading, stop rather than silently using ephemeral storage.
+The primary deployment uses Vercel and Railway; see [the README](../README.md) and [Railway settings](deploy-railway.md). This document describes an alternative Northflank setup. Account verification can require a payment card even for its Sandbox plan. Verify account requirements, pricing, and persistent-volume eligibility before selecting an alternative host.
 
 ## Backend
 
@@ -12,17 +12,17 @@ Target: Northflank Sandbox for the FastAPI backend and separate static hosting f
 6. Attach a persistent **single read/write** volume at `/data`, using the smallest available capacity. The container uses `app:app` (UID/GID 10001) so Northflank can assign volume group permissions. Do not create a managed Postgres/Redis addon.
 7. Enter runtime variables below using the host's secret/environment UI. Keep LLM keys out of source and build arguments.
 
-| Variable | Value |
-| --- | --- |
-| LLM_API_KEYS | The two existing keys, comma-separated |
-| LLM_MODEL | An available Gemini model tested with your keys |
-| DATABASE_URL | `sqlite:////data/app.db` |
-| ALLOWED_ORIGINS | `https://lyftr-ai-chat-rahul1707.fragrantiris16.chatgpt.site` (reserved frontend origin; publication pending) |
-| ENABLE_FAILURE_SIMULATION | `true` |
-| DEFAULT_SYSTEM_PROMPT | `You are a helpful, clear and concise assistant.` |
-| LLM_TIMEOUT_SECONDS | `25` |
-| CACHE_TTL_SECONDS | `3600` |
-| PORT | `8000` |
+| Variable                  | Value                                             |
+| ------------------------- | ------------------------------------------------- |
+| LLM_API_KEYS              | The two existing keys, comma-separated            |
+| LLM_MODEL                 | An available Gemini model tested with your keys   |
+| DATABASE_URL              | `sqlite:////data/app.db`                          |
+| ALLOWED_ORIGINS           | `https://lyftr-ai-assg.vercel.app`                |
+| ENABLE_FAILURE_SIMULATION | `true`                                            |
+| DEFAULT_SYSTEM_PROMPT     | `You are a helpful, clear and concise assistant.` |
+| LLM_TIMEOUT_SECONDS       | `25`                                              |
+| CACHE_TTL_SECONDS         | `3600`                                            |
+| PORT                      | `8000`                                            |
 
 8. Deploy, inspect logs without revealing secrets, and copy the returned public backend URL. A configured key pool can pass health even if the provider is unavailable; test a real chat request separately.
 
@@ -50,4 +50,4 @@ Run the live acceptance script once the actual backend URL is available:
 
 This makes real LLM requests, verifies cache and fallback behavior, and prints only check results. Restart persistence is a separate check requiring a backend restart.
 
-The hosting allowance does not pay for Gemini usage. Current provider requests have returned 503 high-demand errors. Do not claim successful live chat until real inference succeeds.
+Hosting allowances do not pay for Gemini usage. Test real inference separately from the health endpoint and select a model supported by your provider account.
