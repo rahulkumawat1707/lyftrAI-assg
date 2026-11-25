@@ -6,7 +6,9 @@ React chat with a FastAPI backend, LiteLLM key failover and in-memory response c
 
 Public source repository: [rahulkumawat1707/lyftrAI-assg](https://github.com/rahulkumawat1707/lyftrAI-assg).
 
-Add the public frontend URL, backend base URL, and demo recording URL to your assignment submission. Local addresses below are for development and do not replace public deployment URLs.
+Public frontend: [https://lyftr-ai-assg.vercel.app](https://lyftr-ai-assg.vercel.app).
+
+Use the public frontend URL above in your assignment submission, together with your public backend base URL and demo recording URL. Local addresses below are for development and do not replace public deployment URLs.
 
 Local frontend: http://127.0.0.1:3000
 
