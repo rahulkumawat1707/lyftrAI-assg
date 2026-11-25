@@ -17,7 +17,7 @@ Target: Northflank Sandbox for the FastAPI backend and separate static hosting f
 | LLM_API_KEYS | The two existing keys, comma-separated |
 | LLM_MODEL | An available Gemini model tested with your keys |
 | DATABASE_URL | `sqlite:////data/app.db` |
-| ALLOWED_ORIGINS | Exact public React origin, without trailing slash |
+| ALLOWED_ORIGINS | `https://lyftr-ai-chat-rahul1707.fragrantiris16.chatgpt.site` (reserved frontend origin; publication pending) |
 | ENABLE_FAILURE_SIMULATION | `true` |
 | DEFAULT_SYSTEM_PROMPT | `You are a helpful, clear and concise assistant.` |
 | LLM_TIMEOUT_SECONDS | `25` |
@@ -41,5 +41,13 @@ Build the existing React frontend with `VITE_API_BASE_URL` set to the returned p
 - Follow-up messages preserve context and sessions are isolated.
 - SQLite history survives restarting the backend container on its mounted volume.
 - README lists the verified public frontend and backend URLs.
+
+Run the live acceptance script once the actual backend URL is available:
+
+```powershell
+.\.venv\Scripts\python scripts/verify_live.py --backend YOUR_PUBLIC_BACKEND_URL --frontend YOUR_PUBLIC_FRONTEND_URL
+```
+
+This makes real LLM requests, verifies cache and fallback behavior, and prints only check results. Restart persistence is a separate check requiring a backend restart.
 
 The hosting allowance does not pay for Gemini usage. Current provider requests have returned 503 high-demand errors. Do not claim successful live chat until real inference succeeds.
