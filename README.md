@@ -4,7 +4,9 @@ React chat with a FastAPI backend, LiteLLM key failover and in-memory response c
 
 ## 1. Live URLs
 
-Public frontend, backend, repository, and demo URLs are pending deployment.
+Public source repository: [rahulkumawat1707/lyftrAI-assg](https://github.com/rahulkumawat1707/lyftrAI-assg).
+
+Add the public frontend URL, backend base URL, and demo recording URL to your assignment submission. Local addresses below are for development and do not replace public deployment URLs.
 
 Local frontend: http://127.0.0.1:3000
 
@@ -14,15 +16,23 @@ If `localhost` times out on your machine, use the numeric `127.0.0.1` URLs above
 
 ## 2. Run locally: with Docker and without
 
-Copy `.env.example` to `.env` and set two distinct real API keys and an available LiteLLM model name. Never commit `.env`.
+Copy `.env.example` to `.env` and set two distinct real API keys and an available LiteLLM model name. Never commit `.env`. If `.env` already contains your keys, keep that file instead of overwriting it.
 
 ### Docker
 
-Install Docker and Make, then run `make up`. Frontend: http://localhost:3000; backend: http://localhost:8000. `make down` stops both services while preserving the named `sqlite_data` volume. Both images use multi-stage builds. Docker builds have not yet been verified on this workstation because Docker is unavailable.
+Install Docker and Make, then run:
+
+```sh
+make up
+```
+
+Frontend: http://localhost:3000; backend: http://localhost:8000. `make down` stops both services while preserving the named `sqlite_data` volume mounted at `/data`. Both images use multi-stage builds. Without Make, use `docker compose up --build -d` and `docker compose down`.
 
 ### Without Docker (Windows PowerShell)
 
 ```powershell
+git clone https://github.com/rahulkumawat1707/lyftrAI-assg.git
+cd lyftrAI-assg
 python -m venv .venv
 .\.venv\Scripts\python -m pip install -r backend/requirements-dev.txt
 npm.cmd ci --prefix frontend
@@ -38,27 +48,37 @@ Alternatively run each server in its own terminal from the repository root:
 npm.cmd run dev --prefix frontend -- --host 127.0.0.1
 ```
 
+If you already have the project open, skip the clone and directory-change commands. Configure `.env` before starting the servers.
+
 The frontend reads `VITE_API_BASE_URL` from the root `.env` at build/start time. Restart Vite after changing it. Backend environment changes also require a restart. Set `ALLOWED_ORIGINS` to include every frontend origin you use, including `http://127.0.0.1:3000` when using the numeric address.
+
+### Configuration
+
+| Variable | Purpose |
+| --- | --- |
+| `LLM_API_KEYS` | Comma-separated provider keys, at least two; assigned IDs `key_1`, `key_2`, etc. |
+| `LLM_MODEL` | LiteLLM model identifier supported by your provider account |
+| `DATABASE_URL` | SQLite URL; use `sqlite:////data/app.db` inside Docker |
+| `ALLOWED_ORIGINS` | Comma-separated frontend origins permitted by CORS |
+| `ENABLE_FAILURE_SIMULATION` | Set `true` to enable the request-scoped failover test header |
+| `DEFAULT_SYSTEM_PROMPT` | Default assistant instructions when no session override is supplied |
+| `LLM_TIMEOUT_SECONDS` | Timeout for a provider attempt |
+| `CACHE_TTL_SECONDS` | Lifetime of a cached response in seconds |
+| `VITE_API_BASE_URL` | Backend base URL embedded in the React build; contains no API keys |
+
+The backend container also honors the host-provided `PORT`, defaulting to `8000`.
 
 ### Publish to GitHub
 
-1. Sign in to GitHub and create a **public**, empty repository named `lyftr-ai-chat`. Leave the README, license and gitignore options unchecked because the local project supplies its own files.
-2. From `C:\Lyftr AI`, run:
+To publish further changes to the existing repository, run from the project root:
 
 ```powershell
-git remote add origin https://github.com/YOUR_USERNAME/lyftr-ai-chat.git
-git push -u origin main
+git add README.md
+git commit -m "Update project documentation"
+git push origin main
 ```
 
-Git Credential Manager may open your browser to sign in. Complete authentication yourself. If `origin` already exists, inspect it with `git remote -v` before changing it.
-
-The local repository should already have its initial commit. If copying this source without its `.git` directory, initialize it first:
-
-```powershell
-git init -b main
-git add .
-git commit -m "Build Lyftr React and FastAPI chat application"
-```
+Stage other intended source files explicitly when publishing code changes. Git Credential Manager may open your browser to sign in. `.gitignore` excludes API keys in `.env`, the local database, dependencies, and generated output.
 
 ### Public deployment
 
@@ -66,7 +86,7 @@ Deploy `backend/Dockerfile` to a Python/container host with backend root directo
 
 Deploy the frontend as a static site with root directory `frontend`, build command `npm ci && npm run build`, and publish directory `dist`. Set `VITE_API_BASE_URL` to the public HTTPS backend URL **before building**. It is embedded into the frontend bundle; API keys must never use a `VITE_` prefix. Configure the host to serve `index.html` for frontend routes.
 
-Render persistent disks require a paid service; a free ephemeral filesystem does not satisfy restart persistence. Confirm any hosting costs before provisioning.
+Use a host with persistent disk support: an ephemeral filesystem does not preserve SQLite history across container replacement. Review hosting account requirements, storage allowances, and costs before provisioning.
 
 ## 3. Design decisions: key fallback, caching, SQLite session storage
 
@@ -86,7 +106,14 @@ cd backend
 ..\.venv\Scripts\python -m pytest -q
 ```
 
-The contract tests exercise the actual LiteLLM Router and Cache with mocked provider responses; they do not establish that real provider credentials work. `scripts/check_provider.py` tests real keys separately and prints only safe diagnostics.
+The contract tests exercise the actual LiteLLM Router and Cache with mocked provider responses; they do not establish that real provider credentials work. `scripts/check_provider.py` tests real keys separately and prints redacted provider diagnostics. Real inference verification uses your provider quota.
+
+```powershell
+.\.venv\Scripts\python scripts/check_provider.py
+npm.cmd run build --prefix frontend
+```
+
+Run these commands from the repository root. Check that your selected model is available to your account.
 
 For manual checks, use a fresh unique message for each failure test so a prior cache hit does not bypass inference. With `ENABLE_FAILURE_SIMULATION=true`, `X-Simulate-Failure: key_1=429` and `key_1=500` must return key_2 with one fallback. `*=429` must return 503 with `{"detail":"all providers unavailable"}` and add no history. Simulations are request-local. Supported statuses are 429, 500, 502, 503; 5xx simulations use LiteLLM's built-in internal-server-error mock.
 
@@ -94,9 +121,24 @@ Send the same first question in two new sessions: the second should say `LLM_CAC
 
 The UI supplies all required `data-testid` hooks and shows source, model, latency, input/output tokens, successful key ID and fallback attempts next to each assistant message. Its settings include optional system prompts, failure-test controls, and history reload.
 
+### Endpoint checks
+
+```sh
+curl http://localhost:8000/health
+curl -X POST http://localhost:8000/chat -H "Content-Type: application/json" -d '{"session_id":"demo-one","message":"What is the capital of France?"}'
+curl http://localhost:8000/sessions/demo-one/messages
+curl -X POST http://localhost:8000/chat -H "Content-Type: application/json" -H "X-Simulate-Failure: key_1=429" -d '{"session_id":"demo-fallback","message":"Explain Python in one sentence. Reference demo-fallback."}'
+```
+
+These examples use a POSIX shell. In PowerShell, use `Invoke-RestMethod` or `curl.exe` with the appropriate JSON quoting. For deployment verification, replace the local backend address with the public backend base URL.
+
+The `POST /chat` body accepts `session_id` (1–128 characters), `message` (1–4000 characters after trimming), and optional `system_prompt`. A successful response contains `session_id`, non-empty `reply`, and `metadata`: `resolution_source`, `model`, `latency_ms`, `input_tokens`, `output_tokens`, `key_id`, and `fallback_attempts`. Invalid input or malformed JSON returns 422; an unknown history session returns 404; provider exhaustion returns 503. Errors contain `detail`.
+
+Use `scripts/verify_live.py --backend YOUR_BACKEND_URL --frontend YOUR_FRONTEND_URL` with the virtual-environment Python interpreter to run live acceptance checks. After saving a successful conversation, restart the backend and fetch its history again to verify persistence independently of the in-memory cache.
+
 ## 5. Setup Used: your editor and AI tools
 
-VS Code with OpenAI Codex for implementation, dependency installation, and contract testing. The provided assignment PDF was extracted and rendered locally for review. No generated provider answer is presented as live inference in production.
+Editor: **Visual Studio Code**. AI coding assistant: **OpenAI Codex**, used for implementation, documentation, dependency setup, and contract testing. The assignment PDF was extracted and rendered locally for review. Provider calls use LiteLLM; simulated failures affect the selected keys while successful fallback replies still come from a real provider.
 
 ## 6. Bonus features (if any): what you added beyond the requirements and why
 
@@ -105,6 +147,13 @@ VS Code with OpenAI Codex for implementation, dependency installation, and contr
 - Visible backend connectivity and resilience controls to make debugging/demo steps repeatable.
 - A Windows background start script to keep the local preview available between terminal sessions.
 
-### Submission status
+### Assignment submission checklist
 
-Backend contract tests and frontend production build have passed. Public deployment, a public GitHub remote, and the narrated 2–3 minute recording still require completion. See `docs/demo-script.md` for a recording outline.
+Submit the following through the assignment's Submission Form within **24 hours of receiving the assignment**:
+
+- **Public frontend URL:** the React application must be accessible without login and connected to the deployed backend.
+- **Public backend base URL:** the running FastAPI service must expose `GET /health`, `POST /chat`, and `GET /sessions/{session_id}/messages`, with CORS allowing the frontend origin.
+- **Public GitHub repository URL:** include `/backend`, `/frontend`, `docker-compose.yml`, `Makefile` with `up` and `down`, `.env.example` containing placeholders, this README, backend tests, and multi-stage Dockerfiles for both services. Never submit real keys in source.
+- **A 2–3 minute screen recording with your own voice:** show the deployed app, multi-turn conversation, all three endpoints, the per-request metadata, a cache hit, and key failover using `X-Simulate-Failure`. Make the video link accessible without login. See [the recording outline](docs/demo-script.md).
+
+Both deployed tiers must be connected and testable. Localhost addresses and the GitHub source URL do not replace the mandatory live frontend/backend URLs. SQLite must live on a persistent volume, and failure simulation must be enabled on the deployed backend.
