@@ -14,3 +14,4 @@ output/
 .openai/*local*
 sites/
 .vercel/
+tools/
