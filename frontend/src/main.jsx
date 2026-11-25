@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import './styles.css';
 
-const API = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
+const API = (import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://127.0.0.1:8000' : '')).replace(/\/$/, '');
 const newSession = () => ({id: crypto.randomUUID(), title:'New conversation', messages:[], prompt:''});
 const ideas = [
   {icon:Lightbulb, title:'Make the complex simple', text:'Explain response caching like I’m new to AI.', category:'Understand'},
@@ -25,7 +25,7 @@ function App() {
   const [settings,setSettings]=useState(false); const [sidebar,setSidebar]=useState(true);
   const [health,setHealth]=useState(null); const [failure,setFailure]=useState('');
   const [copied,setCopied]=useState(null); const end=useRef(null); const textarea=useRef(null);
-  useEffect(()=>{let alive=true; const check=()=>fetch(API+'/health').then(async r=>{if(alive)setHealth(r.ok?await r.json():false)}).catch(()=>{if(alive)setHealth(false)}); check(); const interval=setInterval(check,30000); return()=>{alive=false;clearInterval(interval)}},[]);
+  useEffect(()=>{if(!API){setHealth(false);return}let alive=true; const check=()=>fetch(API+'/health').then(async r=>{if(alive)setHealth(r.ok?await r.json():false)}).catch(()=>{if(alive)setHealth(false)}); check(); const interval=setInterval(check,30000); return()=>{alive=false;clearInterval(interval)}},[]);
   useEffect(()=>{end.current?.scrollIntoView({behavior:'smooth'})},[session.messages,busy]);
   const update=(id,fn)=>setSessions(s=>s.map(x=>x.id===id?fn(x):x));
   function fresh(){if(busy)return;const s=newSession();setSessions(xs=>[s,...xs]);setActive(s.id);setInput('');setFailure('')}
@@ -34,6 +34,7 @@ function App() {
     const id=session.id; setInput('');setBusy(true);
     update(id,s=>({...s,title:s.messages.length?s.title:message.slice(0,34),messages:[...s.messages,{role:'user',content:message}]}));
     try {
+      if(!API)throw new Error('Chat is not connected to its server yet. Please try again after the connection is set up.');
       const response=await fetch(API+'/chat',{method:'POST',headers:{'Content-Type':'application/json',...(failure?{'X-Simulate-Failure':failure}:{})},body:JSON.stringify({session_id:id,message,...(session.prompt?{system_prompt:session.prompt}:{})}),signal:AbortSignal.timeout(120000)});
       const body=await response.json();
       if(!response.ok)throw new Error(response.status===503?'All providers are temporarily unavailable. Your message was not saved. Please try again.':typeof body.detail==='string'?body.detail:'Please check your message and try again.');

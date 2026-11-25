@@ -88,6 +88,14 @@ Deploy the frontend as a static site with root directory `frontend`, build comma
 
 Use a host with persistent disk support: an ephemeral filesystem does not preserve SQLite history across container replacement. Review hosting account requirements, storage allowances, and costs before provisioning.
 
+### Vercel frontend settings
+
+Import `rahulkumawat1707/lyftrAI-assg` into Vercel with **Root Directory `frontend`** and **Framework Preset Vite**. The included `frontend/vercel.json` sets `npm ci`, `npm run build`, output directory `dist`, and the SPA fallback.
+
+Set `VITE_API_BASE_URL` to your public HTTPS FastAPI backend base URL when it is available, then redeploy. Do not enter API keys in the frontend environment. A production build without a backend URL still renders the interface and displays a readable message when chat is attempted. It does not connect to a visitor's localhost.
+
+Use the project's public production domain for the submission frontend URL. Verify it opens without signing in. Add that exact origin to the backend's `ALLOWED_ORIGINS` before testing chat from Vercel.
+
 ## 3. Design decisions: key fallback, caching, SQLite session storage
 
 - Each key becomes an ordered LiteLLM Router deployment named `key_1`, `key_2`, etc. Router performs fallback with no same-key retries. A request-scoped router avoids simulation/cooldown state leaking to subsequent requests. The public metadata includes only key IDs, never secrets.
