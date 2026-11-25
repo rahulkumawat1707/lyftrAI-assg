@@ -8,7 +8,11 @@ Public source repository: [rahulkumawat1707/lyftrAI-assg](https://github.com/rah
 
 Public frontend: [https://lyftr-ai-assg.vercel.app](https://lyftr-ai-assg.vercel.app).
 
-Use the public frontend URL above in your assignment submission, together with your public backend base URL and demo recording URL. Local addresses below are for development and do not replace public deployment URLs.
+Public backend API base URL: [https://lyftr-backend-production-f9237d5b.up.railway.app](https://lyftr-backend-production-f9237d5b.up.railway.app).
+
+Backend health: [GET /health](https://lyftr-backend-production-f9237d5b.up.railway.app/health).
+
+Use the public frontend and backend base URLs above in your assignment submission, together with your demo recording URL. Local addresses below are for development and do not replace public deployment URLs.
 
 Local frontend: http://127.0.0.1:3000
 
