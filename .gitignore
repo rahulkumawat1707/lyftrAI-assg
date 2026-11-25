@@ -12,3 +12,4 @@ data/
 tmp/
 output/
 .openai/*local*
+sites/
